@@ -1,0 +1,70 @@
+''' This algo goes long on Cruide Oil when its above the 100-Day Moving Average and below the 25 on the RSI indicator '''
+
+import pandas as pd  
+#import quantopian.experimental.optimize as opt
+import talib 
+
+
+
+' Intialize / Make sure it re-balances everyday. Also set up universal context variables ' 
+def initialize(context):     
+    
+    context.cl = 0    
+    
+    context.RSI7 = 0   
+    
+    context.MA = 0
+    
+    context.current_long = False
+    
+    schedule_function( RSI, date_rules.every_day(), time_rules.market_open() )
+    # Record Crude Oil and Gasoline Futures prices everyday
+    #schedule_function(record_vars, 
+                     # date_rules.every_day(), 
+                      #time_rules.market_open())
+    
+' Here do the main RSI and 100-Day Moving Average ' 
+def RSI( context, data ): 
+   
+    context.cl = continuous_future('CL', offset=0, roll='volume', adjustment='mul')  
+    
+    #Current price of the contract
+    currentPrice = data.current( context.cl, 'close' )    
+    #record(CL=currentPrice)
+    
+    #Look back period that will help us calculate the RSI
+    Look_Back_Period = data.history( context.cl , "close", 30, "1d")
+    
+    #This is the actual 7 day RSI value
+    context.RSI7 = talib.RSI( Look_Back_Period, 7 )     
+    #record(RSI=context.RSI7[-1])
+    
+    #A new look back period that will help us calculate the 100-day moving average    
+    Look_Back_Period_2 = data.history(context.cl, fields="close", bar_count=200, frequency="1d")
+    
+    #This is the actual 100-Day Moving Average value
+    context.MA = talib.MA( Look_Back_Period_2, timeperiod=100 )   
+    #record(SMA100=context.MA[-1])
+    
+    #If below 30 - & - above 100 Day Moving Avg --- then BUY  
+    if (context.RSI7[-1] < 30) and (currentPrice > context.MA[-1]) and context.current_long == False:
+        order_target_percent(symbol('CL') , 1)
+        context.current_long = True
+        
+        print "long"   
+        #print "Price =" currentPrice 
+        print context.RSI7[-1]
+        print context.MA[-1]
+        
+    #When the current price is equal to or less then the 100-Day Moving Average then it'll sell    
+    if (currentPrice <= context.MA[-1]) and context.current_long == True:    
+        order_target_percent(symbol('CL'), 0)
+        context.current_long = False
+        
+        print "sell"   
+        #print "Price = "currentPrice
+        print context.MA[-1]
+        
+#def record_vars(context, data):
+    
+    #record(leverage=context.account.leverage)
