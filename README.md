@@ -4,6 +4,5 @@ Week 10 goals:
 Complete research
 
 Week 11 goals:
+Program and put into effect
 
-
-Week 12 goals:
